@@ -1,23 +1,52 @@
-// Try-catch error
+ pragma solidity ^0.4.15;
 
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+/// @title Ethereum Lottery Game.
 
-contract HelloWorld {
-    function getMessage() public pure returns (string memory) {
-        return "Hello, World!";
+contract EtherLotto {
+
+    // Amount of ether needed for participating in the lottery.
+    uint constant TICKET_AMOUNT = 10;
+
+    // Fixed amount fee for each lottery game.
+    uint constant FEE_AMOUNT = 1;
+
+    // Address where fee is sent.
+    address public bank;
+
+    // Public jackpot that each participant can win (minus fee).
+    uint public pot;
+
+    // Lottery constructor sets bank account from the smart-contract owner.
+    function EtherLotto() {
+        bank = msg.sender;
     }
-}
 
-contract HelloWorldFactory {
-    mapping(address => HelloWorld) public contracts;
-    uint public errorCount;
+    // Public function for playing lottery. Each time this function
+    // is invoked, the sender has an oportunity for winning pot.
+    function play() payable {
 
-    function createHelloWorld() public {
-        try new HelloWorld() returns (HelloWorld instance) {
-            contracts[msg.sender] = instance;
-        } catch {
-            errorCount++;
+        // Participants must spend some fixed ether before playing lottery.
+        assert(msg.value == TICKET_AMOUNT);
+
+        // Increase pot for each participant.
+        pot += msg.value;
+
+        // Compute some *almost random* value for selecting winner from current transaction.
+        // <yes> <report> TIME_MANIPULATION
+        var random = uint(sha3(block.timestamp)) % 2;
+
+        // Distribution: 50% of participants will be winners.
+        if (random == 0) {
+
+            // Send fee to bank account.
+            bank.transfer(FEE_AMOUNT);
+
+            // Send jackpot to winner.
+            msg.sender.transfer(pot - FEE_AMOUNT);
+
+            // Restart jackpot.
+            pot = 0;
         }
     }
+
 }
